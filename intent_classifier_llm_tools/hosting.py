@@ -29,7 +29,7 @@ def _() -> logging.Logger:
     return logging.getLogger("intent_classifier_llm_tools")
 
 
-@dependency_definition(container)
+@dependency_definition(container, singleton=True)
 def _(c: Container) -> IAzureOpenAIService:
     from intent_classifier_llm_tools.services.azure_openai_service import (
         AzureOpenAIService,

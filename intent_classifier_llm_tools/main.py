@@ -1,7 +1,5 @@
 import json
-import os
 
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from openai.types.chat.chat_completion_tool_param import ChatCompletionToolParam
 
 from intent_classifier_llm_tools.hosting import container
@@ -9,10 +7,11 @@ from intent_classifier_llm_tools.protocols.i_azure_openai_service import (
     IAzureOpenAIService,
 )
 
-llm_client = container[IAzureOpenAIService].get_client()
-llm_deployment_name = os.getenv("AZURE_OPENAI_LLM_MODEL", "")
+openai_service = container[IAzureOpenAIService]
 
-SYS_PROMPT = "Your primary goal is to route the user query to the correct agent. "
+SYS_PROMPT = "You are a helpful assistant in figuring out the intention of the "
+"customers who are using an Agentic system from a restaurant. Your task is to "
+"determine which function to call based on the user's query. "
 "Default to 'none' if the input seems unclear. You should always "
 "answer with one or more functions, never try to answer the query yourself."
 
@@ -34,21 +33,11 @@ def create_tools() -> list[ChatCompletionToolParam]:
 
 
 def generate(text: str, llm_tools: list[ChatCompletionToolParam]) -> list[str]:
-    messages: list[ChatCompletionMessageParam] = [
-        {"role": "system", "content": SYS_PROMPT},
-        {"role": "user", "content": text},
-    ]
-    response = llm_client.chat.completions.create(
-        model=llm_deployment_name,
-        messages=messages,
-        tools=llm_tools,
-        tool_choice="auto",
-        # **ExperimentParameters().llm_parameters(),
+    return openai_service.generate(
+        system_prompt=SYS_PROMPT,
+        user_prompt=text,
+        llm_tools=llm_tools,
     )
-    message = response.choices[0].message
-    tool_calls = message.tool_calls
-
-    return [tool_call.function.name for tool_call in tool_calls] if tool_calls else []
 
 
 if __name__ == "__main__":
